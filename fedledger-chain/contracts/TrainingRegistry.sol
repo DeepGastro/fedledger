@@ -16,6 +16,10 @@ contract TrainingRegistry {
         bytes32 expectedModelVersion;
         uint256 submitDeadline; // unix timestamp
         bool exists;
+
+        bool finalized; //라운드 종료 여부
+        bytes32 aggregatedUpdateHash; //중앙 AI가 집계한 결과 해시
+        bytes32 newModelVersion; //업데이트된 글로벌 모델 버전
     }
 
     // ---- Admin ----
@@ -40,7 +44,7 @@ contract TrainingRegistry {
     event RoundCreated(uint256 indexed roundId, bytes32 expectedModelVersion, uint256 submitDeadline);
     event UpdateSubmitted(address indexed hospital, uint256 indexed roundId, bytes32 modelVersion, bytes32 updateHash);
     event SubmissionStatusSet(address indexed hospital, uint256 indexed roundId, Status status);
-
+    event RoundFinalized(uint256 indexed roundId, bytes32 aggregatedUpdateHash, bytes32 newModelVersion);
     constructor() {
         owner = msg.sender;
     }
@@ -62,7 +66,26 @@ contract TrainingRegistry {
 
         emit RoundCreated(roundId, expectedModelVersion, submitDeadline);
     }
+    function finalizeRound(
+        uint256 roundId,
+        bytes32 aggHash,
+        bytes32 newModelVersion
+    ) external onlyOwner{
+        Round storage r = rounds[roundId];
+        require(r.exists, "ROUND_NOT_FOUND");
+        require(!r.finalized, "ALEADY_FINALIZED");
+        //마감 이후에만 최종 확정(정책 선택)
+        require(block.timestamp > r.submitDeadline, "ROUND_NOT_ENDED");
 
+        require(aggHash != bytes32(0), "EMPTY_AGG_HASH");
+        require(newModelVersion != bytes32(0), "EMPTY_NEW_VERSION");
+
+        r.finalized = true;
+        r.aggregatedUpdateHash = aggHash;
+        r.newModelVersion = newModelVersion;
+
+        emit RoundFinalized(roundId, aggHash, newModelVersion);
+    }
     // ---- Hospital: submit update hash ----
     function submitUpdate(
         uint256 roundId,

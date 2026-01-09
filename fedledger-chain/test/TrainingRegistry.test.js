@@ -49,3 +49,125 @@ describe("TrainingRegistry", function () {
       .to.be.revertedWith("MODEL_VERSION_MISMATCH");
   });
 });
+
+describe("finalizeRound", function () {
+  it("only owner can finalize", async function () {
+    const [owner, hospA] = await ethers.getSigners();
+    const Registry = await ethers.getContractFactory("TrainingRegistry");
+    const reg = await Registry.deploy();
+
+    const roundId = 100;
+    const v1 = toBytes32("v1.0");
+    const latest = await ethers.provider.getBlock("latest");
+    const deadline = latest.timestamp + 1;
+
+    await reg.createRound(roundId, v1, deadline);
+
+    // 시간 이동 (마감 이후)
+    await ethers.provider.send("evm_increaseTime", [2]);
+    await ethers.provider.send("evm_mine");
+
+    const aggHash = ethers.keccak256(ethers.toUtf8Bytes("agg"));
+    const v2 = toBytes32("v1.1");
+
+    await expect(
+      reg.connect(hospA).finalizeRound(roundId, aggHash, v2)
+    ).to.be.revertedWith("ONLY_OWNER");
+  });
+
+  it("cannot finalize before deadline", async function () {
+    const [owner] = await ethers.getSigners();
+    const Registry = await ethers.getContractFactory("TrainingRegistry");
+    const reg = await Registry.deploy();
+
+    const roundId = 101;
+    const v1 = toBytes32("v1.0");
+    const latest = await ethers.provider.getBlock("latest");
+    const deadline = latest.timestamp + 3600;
+
+    await reg.createRound(roundId, v1, deadline);
+
+    const aggHash = ethers.keccak256(ethers.toUtf8Bytes("agg"));
+    const v2 = toBytes32("v1.1");
+
+    await expect(
+      reg.finalizeRound(roundId, aggHash, v2)
+    ).to.be.revertedWith("ROUND_NOT_ENDED");
+  });
+
+  it("cannot finalize twice", async function () {
+    const [owner] = await ethers.getSigners();
+    const Registry = await ethers.getContractFactory("TrainingRegistry");
+    const reg = await Registry.deploy();
+
+    const roundId = 102;
+    const v1 = toBytes32("v1.0");
+    const latest = await ethers.provider.getBlock("latest");
+    const deadline = latest.timestamp + 1;
+
+    await reg.createRound(roundId, v1, deadline);
+
+    await ethers.provider.send("evm_increaseTime", [2]);
+    await ethers.provider.send("evm_mine");
+
+    const aggHash = ethers.keccak256(ethers.toUtf8Bytes("agg"));
+    const v2 = toBytes32("v1.1");
+
+    await reg.finalizeRound(roundId, aggHash, v2);
+
+    await expect(
+      reg.finalizeRound(roundId, aggHash, v2)
+    ).to.be.revertedWith("ALREADY_FINALIZED");
+  });
+});
+
+describe("submitUpdate additional rules", function () {
+  it("reverts if submit after deadline", async function () {
+    const [owner, hospA] = await ethers.getSigners();
+    const Registry = await ethers.getContractFactory("TrainingRegistry");
+    const reg = await Registry.deploy();
+
+    const roundId = 200;
+    const v1 = toBytes32("v1.0");
+    const latest = await ethers.provider.getBlock("latest");
+    const deadline = latest.timestamp + 1;
+
+    await reg.createRound(roundId, v1, deadline);
+
+    await ethers.provider.send("evm_increaseTime", [2]);
+    await ethers.provider.send("evm_mine");
+
+    const hash = ethers.keccak256(ethers.toUtf8Bytes("delta"));
+
+    await expect(
+      reg.connect(hospA).submitUpdate(roundId, v1, hash)
+    ).to.be.revertedWith("ROUND_CLOSED");
+  });
+
+  it("reverts submit after round finalized", async function () {
+    const [owner, hospA] = await ethers.getSigners();
+    const Registry = await ethers.getContractFactory("TrainingRegistry");
+    const reg = await Registry.deploy();
+
+    const roundId = 201;
+    const v1 = toBytes32("v1.0");
+    const latest = await ethers.provider.getBlock("latest");
+    const deadline = latest.timestamp + 1;
+
+    await reg.createRound(roundId, v1, deadline);
+
+    await ethers.provider.send("evm_increaseTime", [2]);
+    await ethers.provider.send("evm_mine");
+
+    const aggHash = ethers.keccak256(ethers.toUtf8Bytes("agg"));
+    const v2 = toBytes32("v1.1");
+    await reg.finalizeRound(roundId, aggHash, v2);
+
+    const hash = ethers.keccak256(ethers.toUtf8Bytes("delta"));
+
+    await expect(
+      reg.connect(hospA).submitUpdate(roundId, v1, hash)
+    ).to.be.revertedWith("ROUND_FINALIZED");
+  });
+});
+
