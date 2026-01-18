@@ -59,12 +59,15 @@ describe("finalizeRound", function () {
     const roundId = 100;
     const v1 = toBytes32("v1.0");
     const latest = await ethers.provider.getBlock("latest");
-    const deadline = latest.timestamp + 1;
+    const deadline = latest.timestamp + 10
+    ;
 
     await reg.createRound(roundId, v1, deadline);
 
     // 시간 이동 (마감 이후)
-    await ethers.provider.send("evm_increaseTime", [2]);
+    await ethers.provider.send("evm_increaseTime", [11
+
+    ]);
     await ethers.provider.send("evm_mine");
 
     const aggHash = ethers.keccak256(ethers.toUtf8Bytes("agg"));
@@ -103,11 +106,11 @@ describe("finalizeRound", function () {
     const roundId = 102;
     const v1 = toBytes32("v1.0");
     const latest = await ethers.provider.getBlock("latest");
-    const deadline = latest.timestamp + 1;
+    const deadline = latest.timestamp + 10;
 
     await reg.createRound(roundId, v1, deadline);
 
-    await ethers.provider.send("evm_increaseTime", [2]);
+    await ethers.provider.send("evm_increaseTime", [11]);
     await ethers.provider.send("evm_mine");
 
     const aggHash = ethers.keccak256(ethers.toUtf8Bytes("agg"));
@@ -130,11 +133,11 @@ describe("submitUpdate additional rules", function () {
     const roundId = 200;
     const v1 = toBytes32("v1.0");
     const latest = await ethers.provider.getBlock("latest");
-    const deadline = latest.timestamp + 1;
+    const deadline = latest.timestamp + 10;
 
     await reg.createRound(roundId, v1, deadline);
 
-    await ethers.provider.send("evm_increaseTime", [2]);
+    await ethers.provider.send("evm_increaseTime", [11]);
     await ethers.provider.send("evm_mine");
 
     const hash = ethers.keccak256(ethers.toUtf8Bytes("delta"));
@@ -152,11 +155,11 @@ describe("submitUpdate additional rules", function () {
     const roundId = 201;
     const v1 = toBytes32("v1.0");
     const latest = await ethers.provider.getBlock("latest");
-    const deadline = latest.timestamp + 1;
+    const deadline = latest.timestamp + 10;
 
     await reg.createRound(roundId, v1, deadline);
 
-    await ethers.provider.send("evm_increaseTime", [2]);
+    await ethers.provider.send("evm_increaseTime", [11]);
     await ethers.provider.send("evm_mine");
 
     const aggHash = ethers.keccak256(ethers.toUtf8Bytes("agg"));
