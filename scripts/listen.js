@@ -1,6 +1,7 @@
 const { ethers } = require("ethers");
 const abi = require("../abi/TrainingRegistry.abi.json");
-const address = require("../addresses/localhost.json").TrainingRegistry;
+const address = require("../interface/addresses/localhost.json").TrainingRegistry;
+
 
 async function main() {
   const RPC = "http://127.0.0.1:8545";
